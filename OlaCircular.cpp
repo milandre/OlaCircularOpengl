@@ -13,12 +13,11 @@ using namespace std;
 
 GLUnurbsObj *theNurb;
 
-float knots[42] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,
-	               0.0,0.0,0.0,0.0,0.0,0.0,0.0,
-				   0.0,0.0,0.0,0.0,0.0,0.0,0.0,
-				   1.0,1.0,1.0,1.0,1.0,1.0,1.0,
-				   1.0,1.0,1.0,1.0,1.0,1.0,1.0,
-				   1.0,1.0,1.0,1.0,1.0,1.0,1.0};
+float knots[25] = {0.0,0.0,0.0,0.0,1.0,2.0,
+	               3.0,4.0,5.0,6.0,7.0,
+				   8.0,9.0,10.0,11.0,12.0,
+				   13.0,14.0,15.0,16.0,17.0,
+				   18.0,18.0,18.0,18.0};
 
 float ctlpoints[21][21][3];
 
@@ -135,15 +134,15 @@ void init_surface() {
    for (u = 0; u < 21; u++) {
       for (v = 0; v < 21; v++) {
          ctlpoints[u][v][0] = ((GLfloat)u - 10.0);
-		 ctlpoints[u][v][1] = 0.0;
+		 //ctlpoints[u][v][1] = 0.0;
          //ctlpoints[u][v][1] = 2.0*((GLfloat)v - 1.5);
 		 ctlpoints[u][v][2] = ((GLfloat)v - 10.0);
 
 
-         /*if ( (u == 1 || u == 2) && (v == 1 || v == 2))
-            ctlpoints[u][v][2] = 3.0;
+         if ( (u == 10 || u == 11 || u == 12) && (v == 10 || v == 11 || v == 12))
+            ctlpoints[u][v][1] = 1.0;
          else
-            ctlpoints[u][v][2] = -3.0;*/
+            ctlpoints[u][v][1] = -1.0;
       }
    }    
 	
@@ -218,7 +217,7 @@ void render(){
 
 
 	
-	// Render Grid 
+	/* Render Grid 
 	glDisable(GL_LIGHTING);
 	glLineWidth(1.0);
 	glPushMatrix();
@@ -243,7 +242,7 @@ void render(){
 	ejesCoordenada();
     glPopMatrix();
 	glEnable(GL_LIGHTING);
-	// Fin Grid
+	// Fin Grid*/
 	
 
 
@@ -252,14 +251,12 @@ void render(){
 	glEnable( GL_LINE_SMOOTH );	
 
 	
-	glPushMatrix();
-
 	gluBeginSurface(theNurb);
 
-	gluNurbsSurface(theNurb, 
-                   25, knots, 25, knots,
-                   21 * 3, 3, &ctlpoints[0][0][0], 
-                   4, 4, GL_MAP2_VERTEX_3);
+		gluNurbsSurface(theNurb, 
+						25, knots, 25, knots,
+                        21 * 3, 3, &ctlpoints[0][0][0], 
+                        4, 4, GL_MAP2_VERTEX_3);
     
 	/*gluNurbsSurface(theNurb, 
                    25, variableKnots, 25, variableKnots,
@@ -274,8 +271,6 @@ void render(){
 
 	gluEndSurface(theNurb);
 	
-	glPopMatrix();
-
 	//crearPuntosControl();
 	
 	/* Muestra los puntos de control */
