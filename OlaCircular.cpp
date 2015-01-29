@@ -12,46 +12,17 @@ using namespace std;
 
 
 GLUnurbsObj *theNurb;
-//float ctlpoints[120][120][3];
 
-/*void crearPuntosControl(){
+float knots[42] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,
+	               0.0,0.0,0.0,0.0,0.0,0.0,0.0,
+				   0.0,0.0,0.0,0.0,0.0,0.0,0.0,
+				   1.0,1.0,1.0,1.0,1.0,1.0,1.0,
+				   1.0,1.0,1.0,1.0,1.0,1.0,1.0,
+				   1.0,1.0,1.0,1.0,1.0,1.0,1.0};
 
-	int numX = 0;
-	int numY = 0;
-	int numZ = 0;
-	int num = 0;
+float ctlpoints[21][21][3];
 
-for(int z = 0; z < 11; z++){
-	
-		if(numY == 120){ break;}
-		
-		for(int x = 0; x < 11; x ++){
-
-			if(numX == 120){ break; }
-			if(numY == 120){ break; }
-
-			//if(numZ == 3){ numZ = 0; }
-
-			ctlpoints[numX][numY][0] = x;
-
-			ctlpoints[numX][numY][1] = 0;
-
-			ctlpoints[numX][numY][2] = z;
-
-			printf("{%f,%f,%f}",ctlpoints[numX][numY][0],ctlpoints[numX][numY][1],ctlpoints[numX][numY][2]);
-				
-			numX += 1;
-			numY += 1;
-
-		}
-		
-		
-	} 
-
-}*/
-
-
-float ctlpoints[22][22][3] = {
+/*float ctlpoints[22][22][3] = {
 
 
 	//Puntos positivos
@@ -100,7 +71,7 @@ float ctlpoints[22][22][3] = {
 
 	{{-10.0, 0.0, -10.0},{-9.0, 0.0, -10.0},{-8.0, 0.0, -10.0},{-7.0, 0.0, -10.0},{-6.0, 0.0, -10.0},{-5.0, 0.0, -10.0},{-4.0, 0.0, -10.0},{-3.0, 0.0, -10.0},{-2.0, 0.0, -10.0},{-1.0, 0.0, -10.0},{0.0, 0.0, -10.0},{1.0, 0.0, -10.0},{2.0, 0.0, -10.0},{3.0, 0.0, -10.0},{4.0, 0.0, -10.0},{5.0, 0.0, -10.0},{6.0, 0.0, -10.0},{7.0, 0.0, -10.0},{8.0, 0.0, -10.0},{9.0, 0.0, -10.0},{10.0, 0.0, -10.0},{11.0, 0.0,-10.0}},
 
-};
+};*/
 
 void ejesCoordenada() {
 	
@@ -160,7 +131,21 @@ void changeViewport(int w, int h) {
 
 void init_surface() {
 	
-	
+   int u, v;
+   for (u = 0; u < 21; u++) {
+      for (v = 0; v < 21; v++) {
+         ctlpoints[u][v][0] = ((GLfloat)u - 10.0);
+		 ctlpoints[u][v][1] = 0.0;
+         //ctlpoints[u][v][1] = 2.0*((GLfloat)v - 1.5);
+		 ctlpoints[u][v][2] = ((GLfloat)v - 10.0);
+
+
+         /*if ( (u == 1 || u == 2) && (v == 1 || v == 2))
+            ctlpoints[u][v][2] = 3.0;
+         else
+            ctlpoints[u][v][2] = -3.0;*/
+      }
+   }    
 	
 }
 
@@ -270,6 +255,11 @@ void render(){
 	glPushMatrix();
 
 	gluBeginSurface(theNurb);
+
+	gluNurbsSurface(theNurb, 
+                   25, knots, 25, knots,
+                   21 * 3, 3, &ctlpoints[0][0][0], 
+                   4, 4, GL_MAP2_VERTEX_3);
     
 	/*gluNurbsSurface(theNurb, 
                    25, variableKnots, 25, variableKnots,
@@ -302,8 +292,7 @@ void render(){
 		}
 		glEnd();
 		glEnable(GL_LIGHTING);
-	
-		
+			
 
 	glDisable(GL_BLEND);
 	glDisable(GL_LINE_SMOOTH);
