@@ -226,8 +226,8 @@ void init_surface() {
    int u, v;
    for (u = 0; u < 21; u++) {
       for (v = 0; v < 21; v++) {
-         ctlpoints[u][v][0] = ((GLfloat)u - 10.0);
-		 ctlpoints[u][v][2] = ((GLfloat)v - 10.0);
+         ctlpoints[v][u][0] = ((GLfloat)u - 10.0);
+		 ctlpoints[v][u][2] = ((GLfloat)v - 10.0);
       }
    }
 
@@ -484,9 +484,7 @@ void render(){
 
 	gluBeginSurface(theNurb);
 
-	glRotatef(180.0f,0.0f,0.0f,0.0f);
-
-		gluNurbsSurface(theNurb, 
+	gluNurbsSurface(theNurb, 
 						25, knots, 25, knots,
                         21 * 3, 3, &ctlpoints[0][0][0], 
                         4, 4, GL_MAP2_VERTEX_3);
