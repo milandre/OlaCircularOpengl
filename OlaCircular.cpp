@@ -12,6 +12,8 @@ using namespace std;
 #define DEF_floorGridZSteps	10.0
 #define PI 3.14159265358979323846
 
+int SoloUno = 0;
+
 GLUnurbsObj *theNurb;
 
 float knots[25] = {0.0,0.0,0.0,0.0,1.0,2.0,
@@ -23,21 +25,22 @@ float knots[25] = {0.0,0.0,0.0,0.0,1.0,2.0,
 float ctlpoints[21][21][3]; //puntos de control.
 float D[2]; //puntos de la direccion.
 
+// Para las animaciones.
 GLfloat AmplitudOla = 0.5f; 
-GLfloat LongitudOla = 5.0f;
+GLfloat LongitudOla = 3.5f;
 GLfloat VelocidadOla = 2.0f;
 GLfloat DecaimientoOla;
-GLfloat AmplitudRuido;
-GLfloat OffsetRuido;
-GLfloat AlturaRuido;
-GLfloat SizeTurbulencia;
+GLfloat AmplitudRuido = 30.0f;
+GLfloat OffsetRuido = -0.4f;
+GLfloat AlturaRuido = 1.0f;
+GLfloat SizeTurbulencia = 64.0f;
 GLfloat AmplitudDeformador;
 GLfloat TranslacionDeformador;
 GLfloat centroX = 0.0f;
 GLfloat centroZ = 0.0f;
 GLint pausaAnimacion = 0;
-GLint desactivaRuido;
-GLint desactivaOla;
+GLint desactivaRuido = 0;
+GLint desactivaOla = 0;
 GLfloat time = 0.1;
 
 //calcular frecuencia
@@ -46,90 +49,126 @@ GLfloat w = ((2 * PI) / LongitudOla );
 //calcular speed
 GLfloat s = ((VelocidadOla * 2 * PI) / LongitudOla );
 
-/*float ctlpoints[21][21][3] = {
+// Para el ruido y la turbulencia.
+#define N 0x1000
+#define B 0x100
+#define BM 0xff
 
+static int start = 1;
+static int p[B + B + 2];
+static float g2[B + B + 2][2];
 
-	//Puntos positivos
+#define s_curve(t) ( t * t * (3. - 2. * t) )
 
-	{{-10.0, 0.0, 10.0},{-9.0, 0.0, 10.0},{-8.0, 0.0, 10.0},{-7.0, 0.0, 10.0},{-6.0, 0.0, 10.0},{-5.0, 0.0, 10.0},{-4.0, 0.0, 10.0},{-3.0, 0.0, 10.0},{-2.0, 0.0, 10.0},{-1.0, 0.0, 10.0},{0.0, 0.0, 10.0},{1.0, 0.0, 10.0},{2.0, 0.0, 10.0},{3.0, 0.0, 10.0},{4.0, 0.0, 10.0},{5.0, 0.0, 10.0},{6.0, 0.0, 10.0},{7.0, 0.0, 10.0},{8.0, 0.0, 10.0},{9.0, 0.0, 10.0},{10.0, 0.0, 10.0}},
+#define lerp(t, a, b) ( a + t * (b - a) )
 
-	{{-10.0, 0.0, 9.0},{-9.0, 0.0, 9.0},{-8.0, 0.0, 9.0},{-7.0, 0.0, 9.0},{-6.0, 0.0, 9.0},{-5.0, 0.0, 9.0},{-4.0, 0.0, 9.0},{-3.0, 0.0, 9.0},{-2.0, 0.0, 9.0},{-1.0, 0.0, 9.0},{0.0, 0.0, 9.0},{1.0, 0.0, 9.0},{2.0, 0.0, 9.0},{3.0, 0.0, 9.0},{4.0, 0.0, 9.0},{5.0, 0.0, 9.0},{6.0, 0.0, 9.0},{7.0, 0.0, 9.0},{8.0, 0.0, 9.0},{9.0, 0.0, 9.0},{10.0, 0.0, 9.0}},
+#define setup(i,b0,b1,r0,r1)\
+	t = vec[i] + N;\
+	b0 = ((int)t) & BM;\
+	b1 = (b0+1) & BM;\
+	r0 = t - (int)t;\
+	r1 = r0 - 1.;
 
-	{{-10.0, 0.0, 8.0},{-9.0, 0.0, 8.0},{-8.0, 0.0, 8.0},{-7.0, 0.0, 8.0},{-6.0, 0.0, 8.0},{-5.0, 0.0, 8.0},{-4.0, 0.0, 8.0},{-3.0, 0.0, 8.0},{-2.0, 0.0, 8.0},{-1.0, 0.0, 8.0},{0.0, 0.0, 8.0},{1.0, 0.0, 8.0},{2.0, 0.0, 8.0},{3.0, 0.0, 8.0},{4.0, 0.0, 8.0},{5.0, 0.0, 8.0},{6.0, 0.0, 8.0},{7.0, 0.0, 8.0},{8.0, 0.0, 8.0},{9.0, 0.0, 8.0},{10.0, 0.0, 8.0}},
+//static void init(void);
 
-	{{-10.0, 0.0, 7.0},{-9.0, 0.0, 7.0},{-8.0, 0.0, 7.0},{-7.0, 0.0, 7.0},{-6.0, 0.0, 7.0},{-5.0, 0.0, 7.0},{-4.0, 0.0, 7.0},{-3.0, 0.0, 7.0},{-2.0, 0.0, 7.0},{-1.0, 0.0, 7.0},{0.0, 0.0, 7.0},{1.0, 0.0, 7.0},{2.0, 0.0, 7.0},{3.0, 0.0, 7.0},{4.0, 0.0, 7.0},{5.0, 0.0, 7.0},{6.0, 0.0, 7.0},{7.0, 0.0, 7.0},{8.0, 0.0, 7.0},{9.0, 0.0, 7.0},{10.0, 0.0, 7.0}},
+float noise2(float vec[2])
+{
+	int bx0, bx1, bz0, bz1, b00, b10, b01, b11;
+	float rx0, rx1, rz0, rz1, *q, sx, sz, a, b, t, u, v;
+	int i, j;
 
-	{{-10.0, 0.0, 6.0},{-9.0, 0.0, 6.0},{-8.0, 0.0, 6.0},{-7.0, 0.0, 6.0},{-6.0, 0.0, 6.0},{-5.0, 0.0, 6.0},{-4.0, 0.0, 6.0},{-3.0, 0.0, 6.0},{-2.0, 0.0, 6.0},{-1.0, 0.0, 6.0},{0.0, 0.0, 6.0},{1.0, 0.0, 6.0},{2.0, 0.0, 6.0},{3.0, 0.0, 6.0},{4.0, 0.0, 6.0},{5.0, 0.0, 6.0},{6.0, 0.0, 6.0},{7.0, 0.0, 6.0},{8.0, 0.0, 6.0},{9.0, 0.0, 6.0},{10.0, 0.0, 6.0}},
+	//if (start) {
+		//start = 0;
+		//init();
+	//}
 
-	{{-10.0, 0.0, 5.0},{-9.0, 0.0, 5.0},{-8.0, 0.0, 5.0},{-7.0, 0.0, 5.0},{-6.0, 0.0, 5.0},{-5.0, 0.0, 5.0},{-4.0, 0.0, 5.0},{-3.0, 0.0, 5.0},{-2.0, 0.0, 5.0},{-1.0, 0.0, 5.0},{0.0, 0.0, 5.0},{1.0, 0.0, 5.0},{2.0, 0.0, 5.0},{3.0, 0.0, 5.0},{4.0, 0.0, 5.0},{5.0, 0.0, 5.0},{6.0, 0.0, 5.0},{7.0, 0.0, 5.0},{8.0, 0.0, 5.0},{9.0, 0.0, 5.0},{10.0, 0.0, 5.0}},
+	setup(0, bx0,bx1, rx0,rx1);
+	setup(1, bz0,bz1, rz0,rz1);
 
-	{{-10.0, 0.0, 4.0},{-9.0, 0.0, 4.0},{-8.0, 0.0, 4.0},{-7.0, 0.0, 4.0},{-6.0, 0.0, 4.0},{-5.0, 0.0, 4.0},{-4.0, 0.0, 4.0},{-3.0, 0.0, 4.0},{-2.0, 0.0, 4.0},{-1.0, 0.0, 4.0},{0.0, 0.0, 4.0},{1.0, 0.0, 4.0},{2.0, 0.0, 4.0},{3.0, 0.0, 4.0},{4.0, 0.0, 4.0},{5.0, 0.0, 4.0},{6.0, 0.0, 4.0},{7.0, 0.0, 4.0},{8.0, 0.0, 4.0},{9.0, 0.0, 4.0},{10.0, 0.0, 4.0}},
+	i = p[ bx0 ];
+	j = p[ bx1 ];
 
-	{{-10.0, 0.0, 3.0},{-9.0, 0.0, 3.0},{-8.0, 0.0, 3.0},{-7.0, 0.0, 3.0},{-6.0, 0.0, 3.0},{-5.0, 0.0, 3.0},{-4.0, 0.0, 3.0},{-3.0, 0.0, 3.0},{-2.0, 0.0, 3.0},{-1.0, 0.0, 3.0},{0.0, 0.0, 3.0},{1.0, 0.0, 3.0},{2.0, 0.0, 3.0},{3.0, 0.0, 3.0},{4.0, 0.0, 3.0},{5.0, 0.0, 3.0},{6.0, 0.0, 3.0},{7.0, 0.0, 3.0},{8.0, 0.0, 3.0},{9.0, 0.0, 3.0},{10.0, 0.0, 3.0}},
+	b00 = p[ i + bz0 ];
+	b10 = p[ j + bz0 ];
+	b01 = p[ i + bz1 ];
+	b11 = p[ j + bz1 ];
 
-	{{-10.0, 0.0, 2.0},{-9.0, 0.0, 2.0},{-8.0, 0.0, 2.0},{-7.0, 0.0, 2.0},{-6.0, 0.0, 2.0},{-5.0, 0.0, 2.0},{-4.0, 0.0, 2.0},{-3.0, 0.0, 2.0},{-2.0, 0.0, 2.0},{-1.0, 0.0, 2.0},{0.0, 0.0, 2.0},{1.0, 0.0, 2.0},{2.0, 0.0, 2.0},{3.0, 0.0, 2.0},{4.0, 0.0, 2.0},{5.0, 0.0, 2.0},{6.0, 0.0, 2.0},{7.0, 0.0, 2.0},{8.0, 0.0, 2.0},{9.0, 0.0, 2.0},{10.0, 0.0, 2.0}},
+	sx = s_curve(rx0);
+	sz = s_curve(rz0);
 
-	{{-10.0, 0.0, 1.0},{-9.0, 0.0, 1.0},{-8.0, 0.0, 1.0},{-7.0, 0.0, 1.0},{-6.0, 0.0, 1.0},{-5.0, 0.0, 1.0},{-4.0, 0.0, 1.0},{-3.0, 0.0, 1.0},{-2.0, 0.0, 1.0},{-1.0, 0.0, 1.0},{0.0, 0.0, 1.0},{1.0, 0.0, 1.0},{2.0, 0.0, 1.0},{3.0, 0.0, 1.0},{4.0, 0.0, 1.0},{5.0, 0.0, 1.0},{6.0, 0.0, 1.0},{7.0, 0.0, 1.0},{8.0, 0.0, 1.0},{9.0, 0.0, 1.0},{10.0, 0.0, 1.0}},
-	
-	//Puntos que pasan por el origen
-	{{-10.0, 0.0, 0.0},{-9.0, 0.0, 0.0},{-8.0, 0.0, 0.0},{-7.0, 0.0, 0.0},{-6.0, 0.0, 0.0},{-5.0, 0.0, 0.0},{-4.0, 0.0, 0.0},{-3.0, 0.0, 0.0},{-2.0, 0.0, 0.0},{-1.0, 0.0, 0.0},{0.0, 0.0, 0.0},{1.0, 0.0, 0.0},{2.0, 0.0, 0.0},{3.0, 0.0, 0.0},{4.0, 0.0, 0.0},{5.0, 0.0, 0.0},{6.0, 0.0, 0.0},{7.0, 0.0, 0.0},{8.0, 0.0, 0.0},{9.0, 0.0, 0.0},{10.0, 0.0, 0.0}},
- 
-	//Puntos negativos
-	{{-10.0, 0.0, -1.0},{-9.0, 0.0, -1.0},{-8.0, 0.0, -1.0},{-7.0, 0.0, -1.0},{-6.0, 0.0, -1.0},{-5.0, 0.0, -1.0},{-4.0, 0.0, -1.0},{-3.0, 0.0, -1.0},{-2.0, 0.0, -1.0},{-1.0, 0.0, -1.0},{0.0, 0.0, -1.0},{1.0, 0.0, -1.0},{2.0, 0.0, -1.0},{3.0, 0.0, -1.0},{4.0, 0.0, -1.0},{5.0, 0.0, -1.0},{6.0, 0.0, -1.0},{7.0, 0.0, -1.0},{8.0, 0.0, -1.0},{9.0, 0.0, -1.0},{10.0, 0.0, -1.0}},
+// #define at2(rz,rz) (rx * q[0] + rz * q[1]) 
+#define at2(rx,rz) ( rx * vec[0] + rz * vec[1] )
 
-	{{-10.0, 0.0, -2.0},{-9.0, 0.0, -2.0},{-8.0, 0.0, -2.0},{-7.0, 0.0, -2.0},{-6.0, 0.0, -2.0},{-5.0, 0.0, -2.0},{-4.0, 0.0, -2.0},{-3.0, 0.0, -2.0},{-2.0, 0.0, -2.0},{-1.0, 0.0, -2.0},{0.0, 0.0, -2.0},{1.0, 0.0, -2.0},{2.0, 0.0, -2.0},{3.0, 0.0, -2.0},{4.0, 0.0, -2.0},{5.0, 0.0, -2.0},{6.0, 0.0, -2.0},{7.0, 0.0, -2.0},{8.0, 0.0, -2.0},{9.0, 0.0, -2.0},{10.0, 0.0, -2.0}},
+	q = g2[ b00 ] ; u = at2(rx0,rz0);
+	q = g2[ b10 ] ; v = at2(rx1,rz0);
+	a = lerp(sx, u, v);
 
-	{{-10.0, 0.0, -3.0},{-9.0, 0.0, -3.0},{-8.0, 0.0, -3.0},{-7.0, 0.0, -3.0},{-6.0, 0.0, -3.0},{-5.0, 0.0, -3.0},{-4.0, 0.0, -3.0},{-3.0, 0.0, -3.0},{-2.0, 0.0, -3.0},{-1.0, 0.0, -3.0},{0.0, 0.0, -3.0},{1.0, 0.0, -3.0},{2.0, 0.0, -3.0},{3.0, 0.0, -3.0},{4.0, 0.0, -3.0},{5.0, 0.0, -3.0},{6.0, 0.0, -3.0},{7.0, 0.0, -3.0},{8.0, 0.0, -3.0},{9.0, 0.0, -3.0},{10.0, 0.0, -3.0}},
+	q = g2[ b01 ] ; u = at2(rx0,rz1);
+	q = g2[ b11 ] ; v = at2(rx1,rz1);
+	b = lerp(sx, u, v);
 
-	{{-10.0, 0.0, -4.0},{-9.0, 0.0, -4.0},{-8.0, 0.0, -4.0},{-7.0, 0.0, -4.0},{-6.0, 0.0, -4.0},{-5.0, 0.0, -4.0},{-4.0, 0.0, -4.0},{-3.0, 0.0, -4.0},{-2.0, 0.0, -4.0},{-1.0, 0.0, -4.0},{0.0, 0.0, -4.0},{1.0, 0.0, -4.0},{2.0, 0.0, -4.0},{3.0, 0.0, -4.0},{4.0, 0.0, -4.0},{5.0, 0.0, -4.0},{6.0, 0.0, -4.0},{7.0, 0.0, -4.0},{8.0, 0.0, -4.0},{9.0, 0.0, -4.0},{10.0, 0.0, -4.0}},
+	if (SoloUno == 0) {
+		printf(" aquiiiii %f\n", rz0);
+		SoloUno = 1;
+	}
 
-	{{-10.0, 0.0, -5.0},{-9.0, 0.0, -5.0},{-8.0, 0.0, -5.0},{-7.0, 0.0, -5.0},{-6.0, 0.0, -5.0},{-5.0, 0.0, -5.0},{-4.0, 0.0, -5.0},{-3.0, 0.0, -5.0},{-2.0, 0.0, -5.0},{-1.0, 0.0, -5.0},{0.0, 0.0, -5.0},{1.0, 0.0, -5.0},{2.0, 0.0, -5.0},{3.0, 0.0, -5.0},{4.0, 0.0, -5.0},{5.0, 0.0, -5.0},{6.0, 0.0, -5.0},{7.0, 0.0, -5.0},{8.0, 0.0, -5.0},{9.0, 0.0, -5.0},{10.0, 0.0, -5.0}},
+	return lerp(sz, a, b);
+}
 
-	{{-10.0, 0.0, -6.0},{-9.0, 0.0, -6.0},{-8.0, 0.0, -6.0},{-7.0, 0.0, -6.0},{-6.0, 0.0, -6.0},{-5.0, 0.0, -6.0},{-4.0, 0.0, -6.0},{-3.0, 0.0, -6.0},{-2.0, 0.0, -6.0},{-1.0, 0.0, -6.0},{0.0, 0.0, -6.0},{1.0, 0.0, -6.0},{2.0, 0.0, -6.0},{3.0, 0.0, -6.0},{4.0, 0.0, -6.0},{5.0, 0.0, -6.0},{6.0, 0.0, -6.0},{7.0, 0.0, -6.0},{8.0, 0.0, -6.0},{9.0, 0.0, -6.0},{10.0, 0.0, -6.0}},
+float turbulence(float x, float z) {
 
-	{{-10.0, 0.0, -7.0},{-9.0, 0.0, -7.0},{-8.0, 0.0, -7.0},{-7.0, 0.0, -7.0},{-6.0, 0.0, -7.0},{-5.0, 0.0, -7.0},{-4.0, 0.0, -7.0},{-3.0, 0.0, -7.0},{-2.0, 0.0, -7.0},{-1.0, 0.0, -7.0},{0.0, 0.0, -7.0},{1.0, 0.0, -7.0},{2.0, 0.0, -7.0},{3.0, 0.0, -7.0},{4.0, 0.0, -7.0},{5.0, 0.0, -7.0},{6.0, 0.0, -7.0},{7.0, 0.0, -7.0},{8.0, 0.0, -7.0},{9.0, 0.0, -7.0},{10.0, 0.0, -7.0}},
+	float n_noise[2];
+    float value = 0.0;
+	float inicialSize = SizeTurbulencia;
+	float size = SizeTurbulencia;
+	n_noise[0] = x / size;
+	n_noise[1] = z / size;
+	while(size >= 1) {
+		value += noise2(n_noise) * size;
+		size /= 2.0;
+	}
+	return(128.0 * value / inicialSize);
 
-	{{-10.0, 0.0, -8.0},{-9.0, 0.0, -8.0},{-8.0, 0.0, -8.0},{-7.0, 0.0, -8.0},{-6.0, 0.0, -8.0},{-5.0, 0.0, -8.0},{-4.0, 0.0, -8.0},{-3.0, 0.0, -8.0},{-2.0, 0.0, -8.0},{-1.0, 0.0, -8.0},{0.0, 0.0, -8.0},{1.0, 0.0, -8.0},{2.0, 0.0, -8.0},{3.0, 0.0, -8.0},{4.0, 0.0, -8.0},{5.0, 0.0, -8.0},{6.0, 0.0, -8.0},{7.0, 0.0, -8.0},{8.0, 0.0, -8.0},{9.0, 0.0, -8.0},{10.0, 0.0, -8.0}},
+}
 
-	{{-10.0, 0.0, -9.0},{-9.0, 0.0, -9.0},{-8.0, 0.0, -9.0},{-7.0, 0.0, -9.0},{-6.0, 0.0, -9.0},{-5.0, 0.0, -9.0},{-4.0, 0.0, -9.0},{-3.0, 0.0, -9.0},{-2.0, 0.0, -9.0},{-1.0, 0.0, -9.0},{0.0, 0.0, -9.0},{1.0, 0.0, -9.0},{2.0, 0.0, -9.0},{3.0, 0.0, -9.0},{4.0, 0.0, -9.0},{5.0, 0.0, -9.0},{6.0, 0.0, -9.0},{7.0, 0.0, -9.0},{8.0, 0.0, -9.0},{9.0, 0.0, -9.0},{10.0, 0.0, -9.0}},
+void ruido(){
 
-	{{-10.0, 0.0, -10.0},{-9.0, 0.0, -10.0},{-8.0, 0.0, -10.0},{-7.0, 0.0, -10.0},{-6.0, 0.0, -10.0},{-5.0, 0.0, -10.0},{-4.0, 0.0, -10.0},{-3.0, 0.0, -10.0},{-2.0, 0.0, -10.0},{-1.0, 0.0, -10.0},{0.0, 0.0, -10.0},{1.0, 0.0, -10.0},{2.0, 0.0, -10.0},{3.0, 0.0, -10.0},{4.0, 0.0, -10.0},{5.0, 0.0, -10.0},{6.0, 0.0, -10.0},{7.0, 0.0, -10.0},{8.0, 0.0, -10.0},{9.0, 0.0, -10.0},{10.0, 0.0, -10.0}},
+	float n_noise[2];
+	float turbulencia;
+	for(int i = 0; i < 21; i++){
+		for(int j = 0; j < 21; j++){
+			n_noise[0] = ctlpoints[i][j][0] * AmplitudRuido + OffsetRuido;
+			n_noise[1] = ctlpoints[i][j][2] * AmplitudRuido + OffsetRuido;
+			turbulencia = turbulence(n_noise[0],n_noise[1]);
+			ctlpoints[i][j][1] = AlturaRuido * 0.005 * turbulencia;
+		}
+	}
 
-};*/
+}
 
-void directionalOrCircular(float x, float z) {
+// Para las olas.
+void circular(float x, float z) {
 
 	float dist = sqrt (pow(x-centroX, 2) + pow(z-centroZ, 2));
-
 	if(dist == 0){
-		
 		D[0] = 0.0;
 		D[1] = 0.0;
-	
 	} else {
-	 
 		D[0] = (x - centroX) / dist;
 		D[1] = (z - centroZ) / dist;
 	}
-}
 
+}
 
 void olas(){
 
 	float productoEscalar;
-
 	for(int i = 0; i < 21; i++){
-
 		for(int j = 0; j < 21; j++){
-		
-			directionalOrCircular(ctlpoints[i][j][0],ctlpoints[i][j][2]);
-
+			circular(ctlpoints[i][j][0],ctlpoints[i][j][2]);
 			productoEscalar = (D[0] * ctlpoints[i][j][0]) + (D[1] * ctlpoints[i][j][2]); 
-			
-			ctlpoints[i][j][1] = AmplitudOla * sinf( -1.0 * (productoEscalar * w)+ time * s);
-
+			ctlpoints[i][j][1] = (AmplitudOla * sinf( -1.0 * (productoEscalar * w)+ time * s));
 		}
-	
 	}
 
 }
@@ -145,7 +184,6 @@ void ejesCoordenada() {
 		glVertex2f(10,0);
 		glVertex2f(-10,0);
 	glEnd();
-
 	glLineWidth(1.5);
 	int i;
 	glColor3f(0.0,1.0,0.0);
@@ -155,33 +193,26 @@ void ejesCoordenada() {
 				if ((i%2)==0){	
 					glVertex2f(i,0.4);
 					glVertex2f(i,-0.4);
-
 					glVertex2f(0.4,i);
 					glVertex2f(-0.4,i);
 				}else{
 					glVertex2f(i,0.2);
 					glVertex2f(i,-0.2);
-
 					glVertex2f(0.2,i);
 					glVertex2f(-0.2,i);
-
 				}
 			}
 		}
-		
 	glEnd();
-
 	glLineWidth(1.0);
+
 }
 
 void changeViewport(int w, int h) {
 	
 	float aspectratio;
-
 	if (h==0)
 		h=1;
-
-	
    glViewport (0, 0, (GLsizei) w, (GLsizei) h); 
    glMatrixMode (GL_PROJECTION);
    glLoadIdentity ();
@@ -191,43 +222,28 @@ void changeViewport(int w, int h) {
 }
 
 void init_surface() {
-	
+
    int u, v;
    for (u = 0; u < 21; u++) {
-
       for (v = 0; v < 21; v++) {
-
          ctlpoints[u][v][0] = ((GLfloat)u - 10.0);
-		 //ctlpoints[u][v][1] = 0.0;
-         //ctlpoints[u][v][1] = 2.0*((GLfloat)v - 1.5);
 		 ctlpoints[u][v][2] = ((GLfloat)v - 10.0);
-
-
-         /*if ( (u == 10 || u == 11 || u == 12) && (v == 10 || v == 11 || v == 12))
-            ctlpoints[u][v][1] = 1.0;
-         else
-            ctlpoints[u][v][1] = -1.0;*/
       }
    }
+
 }
 
 void init(){
-
-
 
    glEnable(GL_LIGHTING);
    glEnable(GL_LIGHT0);
    glEnable(GL_DEPTH_TEST);
    glEnable(GL_AUTO_NORMAL);
    glEnable(GL_NORMALIZE);
-
    init_surface();
-
    theNurb = gluNewNurbsRenderer();
    gluNurbsProperty(theNurb, GLU_SAMPLING_TOLERANCE, 15.0);
    gluNurbsProperty(theNurb, GLU_DISPLAY_MODE, GLU_FILL);
-
-	
 
 }
 
@@ -388,18 +404,23 @@ void Keyboard(unsigned char key, int x, int y)
 		}
 		break;
 
-	case 51: //tecla numero 2
+	case 51: //tecla numero 3
 
 		if(desactivaOla == 0){
+			AmplitudOla = 0.0f;
+			LongitudOla = 0.0f;
+			VelocidadOla = 0.0f;
 			desactivaOla = 1;
 		} else {
+			AmplitudOla = 0.5f;
+			LongitudOla = 3.5f;
+			VelocidadOla = 2.0f;
 			desactivaOla = 0;
 		}
 		break;
   }
+
 }
-
-
 
 void render(){
 	glClearColor(0.0, 0.0, 0.0, 0.0);
@@ -411,9 +432,7 @@ void render(){
 	glLoadIdentity ();                       
 	gluLookAt (25.0, 12.0, 4.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
 	
-
 	// Luz y material
-
 	GLfloat mat_diffuse[] = { 0.6, 0.6, 0.9, 1.0 };
 	GLfloat mat_specular[] = { 0.8, 0.8, 1.0, 1.0 };
 	GLfloat mat_shininess[] = { 60.0 };
@@ -422,7 +441,6 @@ void render(){
 	glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
 	glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
 	
-
     GLfloat light_ambient[] = { 0.0, 0.0, 0.2, 1.0 };
 	GLfloat light_diffuse[] = { 0.8, 0.8, 0.8, 1.0 };
 	GLfloat light_specular[] = { 0.6, 0.6, 0.6, 1.0 };
@@ -433,8 +451,6 @@ void render(){
 	glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
 	glLightfv(GL_LIGHT0, GL_POSITION, light_position);   
 
-
-	
 	/* Render Grid 
 	glDisable(GL_LIGHTING);
 	glLineWidth(1.0);
@@ -462,8 +478,6 @@ void render(){
 	glEnable(GL_LIGHTING);
 	// Fin Grid*/
 	
-
-
 	//Suaviza las lineas
 	glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable( GL_LINE_SMOOTH );	
@@ -476,22 +490,10 @@ void render(){
 						25, knots, 25, knots,
                         21 * 3, 3, &ctlpoints[0][0][0], 
                         4, 4, GL_MAP2_VERTEX_3);
-    
-	/*gluNurbsSurface(theNurb, 
-                   25, variableKnots, 25, variableKnots,
-                   21 * 3, 3, variablePuntosControl, 
-                   4, 4, GL_MAP2_VERTEX_3);*/
-	/*
-
-		No cambien los numeros de la funcion, solo deben de poner los nombres de las variables correspondiente.
-		
-	*/
-
 
 	gluEndSurface(theNurb);
 	
 	//crearPuntosControl();
-	
 	/* Muestra los puntos de control 
 	
 		int i,j;
@@ -507,11 +509,16 @@ void render(){
 		glEnd();
 		glEnable(GL_LIGHTING);*/
 			
+		glPointSize(5.0);
+		glColor3f(1.0, 1.0, 0.0);
+		glBegin(GL_POINTS);
+	            glVertex3f(ctlpoints[20][20][0], ctlpoints[20][20][1], ctlpoints[20][20][2]);
+		glEnd();
 
 	glDisable(GL_BLEND);
 	glDisable(GL_LINE_SMOOTH);
-
 	glutSwapBuffers();
+
 }
 
 void animacion(int value) {
@@ -519,13 +526,15 @@ void animacion(int value) {
 	if(!pausaAnimacion){
 		//olas	
 		time += 0.1;
-		olas();
+		ruido();
+		//olas();
 	}
-
-	glutTimerFunc(10,animacion,1);
+	glutTimerFunc(2.0,animacion,1);
     glutPostRedisplay();
 	
 }
+
+
 
 int main (int argc, char** argv) {
 
@@ -543,8 +552,6 @@ int main (int argc, char** argv) {
 	glutDisplayFunc(render);
 	glutTimerFunc(10,animacion,1);
 	glutKeyboardFunc (Keyboard);
-
-	
 		
 	GLenum err = glewInit();
 	if (GLEW_OK != err) {
@@ -552,7 +559,6 @@ int main (int argc, char** argv) {
 		return 1;
 	}
 	
-
 	glutMainLoop();
 	return 0;
 
