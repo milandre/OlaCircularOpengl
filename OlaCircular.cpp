@@ -25,6 +25,7 @@ float knots[25] = {0.0,0.0,0.0,0.0,1.0,2.0,
 float ctlpoints[21][21][3]; //puntos de control.
 float D[2]; //puntos de la direccion.
 
+
 // Para las animaciones.
 GLfloat AmplitudOla = 0.5f; 
 GLfloat LongitudOla = 3.5f;
@@ -69,18 +70,16 @@ static float g2[B + B + 2][2];
 	r0 = t - (int)t;\
 	r1 = r0 - 1.;
 
-//static void init(void);
-
 float noise2(float vec[2])
 {
 	int bx0, bx1, bz0, bz1, b00, b10, b01, b11;
 	float rx0, rx1, rz0, rz1, *q, sx, sz, a, b, t, u, v;
 	int i, j;
 
-	//if (start) {
-		//start = 0;
-		//init();
-	//}
+	/*if (start) {
+		start = 0;
+		init();
+	}*/
 
 	setup(0, bx0,bx1, rx0,rx1);
 	setup(1, bz0,bz1, rz0,rz1);
@@ -96,7 +95,7 @@ float noise2(float vec[2])
 	sx = s_curve(rx0);
 	sz = s_curve(rz0);
 
-// #define at2(rz,rz) (rx * q[0] + rz * q[1]) 
+//#define at2(rx,rz) (rx * q[0] + rz * q[1]) 
 #define at2(rx,rz) ( rx * vec[0] + rz * vec[1] )
 
 	q = g2[ b00 ] ; u = at2(rx0,rz0);
@@ -115,6 +114,8 @@ float noise2(float vec[2])
 	return lerp(sz, a, b);
 }
 
+
+
 float turbulence(float x, float z) {
 
 	float n_noise[2];
@@ -131,20 +132,37 @@ float turbulence(float x, float z) {
 
 }
 
-void ruido(){
+/*void ruido(){
 
 	float n_noise[2];
 	float turbulencia;
+
 	for(int i = 0; i < 21; i++){
 		for(int j = 0; j < 21; j++){
 			n_noise[0] = ctlpoints[i][j][0] * AmplitudRuido + OffsetRuido;
 			n_noise[1] = ctlpoints[i][j][2] * AmplitudRuido + OffsetRuido;
+			
+			//turbulencia
 			turbulencia = turbulence(n_noise[0],n_noise[1]);
 			ctlpoints[i][j][1] = AlturaRuido * 0.005 * turbulencia;
 		}
 	}
 
+}*/
+
+float ruido(float ptoX, float ptoZ){
+
+	float n_noise[2];
+	float turbulencia;
+
+	n_noise[0] = ptoX * AmplitudRuido + OffsetRuido;
+	n_noise[1] = ptoZ * AmplitudRuido + OffsetRuido;
+			
+	//turbulencia
+	turbulencia = turbulence(n_noise[0],n_noise[1]);
+	return  (AlturaRuido * 0.005 * turbulencia);
 }
+
 
 // Para las olas.
 void circular(float x, float z) {
@@ -163,11 +181,25 @@ void circular(float x, float z) {
 void olas(){
 
 	float productoEscalar;
+	float ruido_ola;
+
 	for(int i = 0; i < 21; i++){
 		for(int j = 0; j < 21; j++){
 			circular(ctlpoints[i][j][0],ctlpoints[i][j][2]);
 			productoEscalar = (D[0] * ctlpoints[i][j][0]) + (D[1] * ctlpoints[i][j][2]); 
-			ctlpoints[i][j][1] = (AmplitudOla * sinf( -1.0 * (productoEscalar * w)+ time * s));
+
+			if(!desactivaOla){
+				//ctlpoints[i][j][1] = (AmplitudOla * sinf( -1.0 * (productoEscalar * w)+ time * s));
+				//ctlpoints[i][j][1] = (AmplitudOla * sinf( -1.0 * (productoEscalar * w)+ time * s));
+
+			}
+			
+			if(!desactivaRuido){
+				//ruido
+				ruido_ola = ruido(ctlpoints[i][j][0],ctlpoints[i][j][2]);
+				//w += ruido_ola; 
+				           
+			}
 		}
 	}
 
@@ -246,8 +278,6 @@ void init(){
    gluNurbsProperty(theNurb, GLU_DISPLAY_MODE, GLU_FILL);
 
 }
-
-
 
 void Keyboard(unsigned char key, int x, int y)
 {
@@ -388,7 +418,7 @@ void Keyboard(unsigned char key, int x, int y)
 
 	case 49: //tecla numero 1
 
-		if(pausaAnimacion == 0){
+		if(!pausaAnimacion){
 			pausaAnimacion = 1;
 		} else {
 			pausaAnimacion = 0;
@@ -397,7 +427,7 @@ void Keyboard(unsigned char key, int x, int y)
 
 	case 50: //tecla numero 2
 
-		if(desactivaRuido == 0){
+		if(!desactivaRuido){
 			desactivaRuido = 1;
 		} else {
 			desactivaRuido = 0;
@@ -406,7 +436,7 @@ void Keyboard(unsigned char key, int x, int y)
 
 	case 51: //tecla numero 3
 
-		if(desactivaOla == 0){
+		if(!desactivaOla){
 			AmplitudOla = 0.0f;
 			LongitudOla = 0.0f;
 			VelocidadOla = 0.0f;
@@ -524,9 +554,9 @@ void animacion(int value) {
 	if(!pausaAnimacion){
 		//olas	
 		time += 0.1;
-		ruido();
-		//olas();
+		olas();
 	}
+
 	glutTimerFunc(2.0,animacion,1);
     glutPostRedisplay();
 	
@@ -544,7 +574,7 @@ int main (int argc, char** argv) {
 
 	glutCreateWindow("Test Opengl");
 
-	init ();
+	init();
 
 	glutReshapeFunc(changeViewport);
 	glutDisplayFunc(render);
