@@ -22,6 +22,12 @@ float knots[25] = {0.0,0.0,0.0,0.0,1.0,2.0,
 				   13.0,14.0,15.0,16.0,17.0,
 				   18.0,18.0,18.0,18.0};
 
+float decaimiento[21] = {0.05,0.1,0.2,0.325,0.45,
+						 0.575,0.7,0.8,0.875,0.95,
+						 1.0,
+						 0.95,0.875,0.8,0.7,0.575,
+						 0.45,0.325,0.2,0.1,0.05};
+
 float ctlpoints[21][21][3]; //puntos de control.
 float D[2]; //puntos de la direccion.
 
@@ -106,10 +112,10 @@ float noise2(float vec[2])
 	q = g2[ b11 ] ; v = at2(rx1,rz1);
 	b = lerp(sx, u, v);
 
-	if (SoloUno == 0) {
-		printf(" aquiiiii %f\n", rz0);
+	//if (SoloUno == 0) {
+		printf(" aquiiiii %f\n", lerp(sz,a,b));
 		SoloUno = 1;
-	}
+	//}
 
 	return lerp(sz, a, b);
 }
@@ -189,17 +195,17 @@ void olas(){
 			productoEscalar = (D[0] * ctlpoints[i][j][0]) + (D[1] * ctlpoints[i][j][2]); 
 
 			if(!desactivaOla){
-				//ctlpoints[i][j][1] = (AmplitudOla * sinf( -1.0 * (productoEscalar * w)+ time * s));
+				ctlpoints[i][j][1] = (decaimiento[i] * decaimiento[j]) * (AmplitudOla * sinf( -1.0 * (productoEscalar * w)+ time * s));
 				//ctlpoints[i][j][1] = (AmplitudOla * sinf( -1.0 * (productoEscalar * w)+ time * s));
 
 			}
 			
 			if(!desactivaRuido){
 				//ruido
-				ruido_ola = ruido(ctlpoints[i][j][0],ctlpoints[i][j][2]);
-				//w += ruido_ola; 
-				           
+				//ruido_ola = ruido(ctlpoints[i][j][0],ctlpoints[i][j][2]);
+				//w += ruido_ola;            
 			}
+
 		}
 	}
 
