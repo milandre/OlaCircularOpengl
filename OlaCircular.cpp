@@ -36,7 +36,7 @@ float D[2]; //puntos de la direccion.
 GLfloat AmplitudOla = 0.5f; 
 GLfloat LongitudOla = 3.5f;
 GLfloat VelocidadOla = 2.0f;
-GLfloat DecaimientoOla;
+GLfloat DecaimientoOla = 0.0f;
 GLfloat AmplitudRuido = 30.0f;
 GLfloat OffsetRuido = -0.4f;
 GLfloat AlturaRuido = 1.0f;
@@ -191,11 +191,24 @@ void olas(){
 
 	for(int i = 0; i < 21; i++){
 		for(int j = 0; j < 21; j++){
+			float decaimientoPto;
+			float diferenciaDecaimiento;
+			float decaimientoTotal;
+
 			circular(ctlpoints[i][j][0],ctlpoints[i][j][2]);
 			productoEscalar = (D[0] * ctlpoints[i][j][0]) + (D[1] * ctlpoints[i][j][2]); 
 
 			if(!desactivaOla){
-				ctlpoints[i][j][1] = (decaimiento[i] * decaimiento[j]) * (AmplitudOla * sinf( -1.0 * (productoEscalar * w)+ time * s));
+				decaimientoPto = decaimiento[i] * decaimiento[j];
+				if (DecaimientoOla <= 0.0) {
+					diferenciaDecaimiento = (1 - decaimientoPto) / 100;
+					decaimientoTotal = decaimientoPto - 100 * DecaimientoOla * diferenciaDecaimiento;
+				} else {
+					diferenciaDecaimiento = decaimientoPto / 100;
+					decaimientoTotal = decaimientoPto - 100 * DecaimientoOla * diferenciaDecaimiento;
+				}
+				ctlpoints[i][j][1] = decaimientoTotal * (AmplitudOla * sinf( -1.0 * (productoEscalar * w)+ time * s));
+				//ctlpoints[i][j][1] = (AmplitudOla * sinf( -1.0 * (productoEscalar * w)+ time * s));
 				//ctlpoints[i][j][1] = (AmplitudOla * sinf( -1.0 * (productoEscalar * w)+ time * s));
 
 			}
@@ -334,12 +347,16 @@ void Keyboard(unsigned char key, int x, int y)
 
 	case 70: case 102: //tecla f
 
-		DecaimientoOla += 0.01;
+		if (DecaimientoOla < 1.00) {
+			DecaimientoOla += 0.01;
+		}
 		break;
 
 	case 86: case 118: //tecla v
 
-		DecaimientoOla -= 0.01;
+		if (DecaimientoOla > -1.00) {
+			DecaimientoOla -= 0.01;
+		}
 		break;
 
 	case 71: case 103: //tecla g
