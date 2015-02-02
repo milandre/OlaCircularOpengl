@@ -4,6 +4,8 @@
 #include <GL\freeglut.h>
 #include <iostream>
 #include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 using namespace std;
 
@@ -31,16 +33,15 @@ float decaimiento[21] = {0.05,0.1,0.2,0.325,0.45,
 float ctlpoints[21][21][3]; //puntos de control.
 float D[2]; //puntos de la direccion.
 
-
 // Para las animaciones.
-GLfloat AmplitudOla = 0.5f; 
+GLfloat AmplitudOla = 0.5f;
 GLfloat LongitudOla = 3.5f;
 GLfloat VelocidadOla = 2.0f;
-GLfloat DecaimientoOla = 0.0f;
-GLfloat AmplitudRuido = 30.0f;
-GLfloat OffsetRuido = -0.4f;
+GLfloat DecaimientoOla = 0.0f;		// Tengo que revisarlo, no funciona correctamente
+GLfloat AmplitudRuido = 30.0f;		// NO ENTIENDO QUE DEBE HACER (AL PARECER GENERA MAS O MENOS SUAVIDAD EN EL RUIDO) Y NO SE SI LO ESTA HACIENDO
+GLfloat OffsetRuido = 10.4f;		// NO ENTIENDO QUE DEBE HACER Y NO SE SI LO ESTA HACIENDO
 GLfloat AlturaRuido = 1.0f;
-GLfloat SizeTurbulencia = 64.0f;
+GLfloat SizeTurbulencia = 16.0f;	
 GLfloat AmplitudDeformador;
 GLfloat TranslacionDeformador;
 GLfloat centroX = 0.0f;
@@ -50,11 +51,11 @@ GLint desactivaRuido = 0;
 GLint desactivaOla = 0;
 GLfloat time = 0.1;
 
-//calcular frecuencia
-GLfloat w = ((2 * PI) / LongitudOla ); 
+//Calcular frecuencia de la ola.
+GLfloat w; 
 
-//calcular speed
-GLfloat s = ((VelocidadOla * 2 * PI) / LongitudOla );
+//Calcular velocidad de la ola.
+GLfloat s;
 
 // Para el ruido y la turbulencia.
 #define N 0x1000
@@ -64,6 +65,8 @@ GLfloat s = ((VelocidadOla * 2 * PI) / LongitudOla );
 static int start = 1;
 static int p[B + B + 2];
 static float g2[B + B + 2][2];
+
+static void init_ruido(void);
 
 #define s_curve(t) ( t * t * (3. - 2. * t) )
 
@@ -82,10 +85,10 @@ float noise2(float vec[2])
 	float rx0, rx1, rz0, rz1, *q, sx, sz, a, b, t, u, v;
 	int i, j;
 
-	/*if (start) {
+	if (start) {
 		start = 0;
-		init();
-	}*/
+		init_ruido();
+	}
 
 	setup(0, bx0,bx1, rx0,rx1);
 	setup(1, bz0,bz1, rz0,rz1);
@@ -101,8 +104,7 @@ float noise2(float vec[2])
 	sx = s_curve(rx0);
 	sz = s_curve(rz0);
 
-//#define at2(rx,rz) (rx * q[0] + rz * q[1]) 
-#define at2(rx,rz) ( rx * vec[0] + rz * vec[1] )
+#define at2(rx,rz) (rx * q[0] + rz * q[1]) 
 
 	q = g2[ b00 ] ; u = at2(rx0,rz0);
 	q = g2[ b10 ] ; v = at2(rx1,rz0);
@@ -112,15 +114,8 @@ float noise2(float vec[2])
 	q = g2[ b11 ] ; v = at2(rx1,rz1);
 	b = lerp(sx, u, v);
 
-	//if (SoloUno == 0) {
-		printf(" aquiiiii %f\n", lerp(sz,a,b));
-		SoloUno = 1;
-	//}
-
 	return lerp(sz, a, b);
 }
-
-
 
 float turbulence(float x, float z) {
 
@@ -138,25 +133,39 @@ float turbulence(float x, float z) {
 
 }
 
-/*void ruido(){
+static void normalize2(float v[2])
+{
+	float s;
+	s = sqrt(v[0] * v[0] + v[1] * v[1]);
+	v[0] = v[0] / s;
+	v[1] = v[1] / s;
+}
 
-	float n_noise[2];
-	float turbulencia;
+static void init_ruido(void) {
+	int i, j, k;
 
-	for(int i = 0; i < 21; i++){
-		for(int j = 0; j < 21; j++){
-			n_noise[0] = ctlpoints[i][j][0] * AmplitudRuido + OffsetRuido;
-			n_noise[1] = ctlpoints[i][j][2] * AmplitudRuido + OffsetRuido;
-			
-			//turbulencia
-			turbulencia = turbulence(n_noise[0],n_noise[1]);
-			ctlpoints[i][j][1] = AlturaRuido * 0.005 * turbulencia;
-		}
+	for (i = 0 ; i < B ; i++) {
+		p[i] = i;
+
+		for (j = 0 ; j < 2 ; j++)
+			g2[i][j] = (float)((rand() % (B + B)) - B) / B;
+		normalize2(g2[i]);
 	}
 
-}*/
+	while (--i) {
+		k = p[i];
+		p[i] = p[j = rand() % B];
+		p[j] = k;
+	}
 
-float ruido(float ptoX, float ptoZ){
+	for (i = 0 ; i < B + 2 ; i++) {
+		p[B + i] = p[i];
+		for (j = 0 ; j < 2 ; j++)
+			g2[B + i][j] = g2[i][j];
+	}
+}
+
+float ruido(float ptoX, float ptoZ) {
 
 	float n_noise[2];
 	float turbulencia;
@@ -167,8 +176,8 @@ float ruido(float ptoX, float ptoZ){
 	//turbulencia
 	turbulencia = turbulence(n_noise[0],n_noise[1]);
 	return  (AlturaRuido * 0.005 * turbulencia);
-}
 
+}
 
 // Para las olas.
 void circular(float x, float z) {
@@ -187,75 +196,43 @@ void circular(float x, float z) {
 void olas(){
 
 	float productoEscalar;
-	float ruido_ola;
+	float decaimientoPto;
+	float diferenciaDecaimiento;
+	float decaimientoTotal;
+
+	w = ((2 * PI) / LongitudOla );
+	s = ((VelocidadOla * 2 * PI) / LongitudOla );
 
 	for(int i = 0; i < 21; i++){
 		for(int j = 0; j < 21; j++){
-			float decaimientoPto;
-			float diferenciaDecaimiento;
-			float decaimientoTotal;
 
 			circular(ctlpoints[i][j][0],ctlpoints[i][j][2]);
 			productoEscalar = (D[0] * ctlpoints[i][j][0]) + (D[1] * ctlpoints[i][j][2]); 
-
-			if(!desactivaOla){
-				decaimientoPto = decaimiento[i] * decaimiento[j];
-				if (DecaimientoOla <= 0.0) {
-					diferenciaDecaimiento = (1 - decaimientoPto) / 100;
-					decaimientoTotal = decaimientoPto - 100 * DecaimientoOla * diferenciaDecaimiento;
-				} else {
-					diferenciaDecaimiento = decaimientoPto / 100;
-					decaimientoTotal = decaimientoPto - 100 * DecaimientoOla * diferenciaDecaimiento;
-				}
-				ctlpoints[i][j][1] = decaimientoTotal * (AmplitudOla * sinf( -1.0 * (productoEscalar * w)+ time * s));
-				//ctlpoints[i][j][1] = (AmplitudOla * sinf( -1.0 * (productoEscalar * w)+ time * s));
-				//ctlpoints[i][j][1] = (AmplitudOla * sinf( -1.0 * (productoEscalar * w)+ time * s));
-
+			/*
+			decaimientoPto = decaimiento[i] * decaimiento[j];
+			if (DecaimientoOla <= 0.0) {
+				diferenciaDecaimiento = (1 - decaimientoPto) / 100;
+				decaimientoTotal = decaimientoPto - 100 * DecaimientoOla * diferenciaDecaimiento;
+			} else {
+				diferenciaDecaimiento = decaimientoPto / 100;
+				decaimientoTotal = decaimientoPto - 100 * DecaimientoOla * diferenciaDecaimiento;
 			}
-			
-			if(!desactivaRuido){
-				//ruido
-				//ruido_ola = ruido(ctlpoints[i][j][0],ctlpoints[i][j][2]);
-				//w += ruido_ola;            
+			*/
+			if (!desactivaOla && !desactivaRuido) {
+				//ctlpoints[i][j][1] = decaimientoTotal * (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s  + ruido(ctlpoints[i][j][0],ctlpoints[i][j][2])));
+				ctlpoints[i][j][1] = (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s  + ruido(ctlpoints[i][j][0],ctlpoints[i][j][2])));
+			} else if (!desactivaOla && desactivaRuido) {
+				//ctlpoints[i][j][1] = decaimientoTotal * (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s ));
+				ctlpoints[i][j][1] = (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s ));
+			} else if (desactivaOla && !desactivaRuido) {
+				// ASI MUESTRA ALGO MUY PARECIDO AL DEL PROFESOR, AUNQUE NO ME CONVENCE ESE SENO. 
+				ctlpoints[i][j][1] = sinf(time + ruido(ctlpoints[i][j][0],ctlpoints[i][j][2]));
+			} else {
+				ctlpoints[i][j][1] = 0.0; 
 			}
 
 		}
 	}
-
-}
-
-void ejesCoordenada() {
-	
-	glLineWidth(2.5);
-	glBegin(GL_LINES);
-		glColor3f(1.0,0.0,0.0);
-		glVertex2f(0,10);
-		glVertex2f(0,-10);
-		glColor3f(0.0,0.0,1.0);
-		glVertex2f(10,0);
-		glVertex2f(-10,0);
-	glEnd();
-	glLineWidth(1.5);
-	int i;
-	glColor3f(0.0,1.0,0.0);
-	glBegin(GL_LINES);
-		for(i = -10; i <=10; i++){
-			if (i!=0) {		
-				if ((i%2)==0){	
-					glVertex2f(i,0.4);
-					glVertex2f(i,-0.4);
-					glVertex2f(0.4,i);
-					glVertex2f(-0.4,i);
-				}else{
-					glVertex2f(i,0.2);
-					glVertex2f(i,-0.2);
-					glVertex2f(0.2,i);
-					glVertex2f(-0.2,i);
-				}
-			}
-		}
-	glEnd();
-	glLineWidth(1.0);
 
 }
 
@@ -313,25 +290,21 @@ void Keyboard(unsigned char key, int x, int y)
 		break;
 
 	case 90: case 122: //tecla z
-
-		AmplitudOla -= 0.1f;
+		
+		if (AmplitudOla > 0.1) {
+			AmplitudOla -= 0.1f;
+		}
 		break;
 
 	case 83: case 115: //tecla s
 
 		LongitudOla += 0.1f;
-		if(LongitudOla != 0) {
-			w = ((2 * PI) / LongitudOla );
-			s = ((VelocidadOla * 2 * PI) / LongitudOla );
-		}
 		break;
 
 	case 88: case 120: //tecla x
 
-		LongitudOla -= 0.1f;
-		if(LongitudOla != 0) {
-			w = ((2 * PI) / LongitudOla );
-			s = ((VelocidadOla * 2 * PI) / LongitudOla );
+		if (LongitudOla > 0.1) {
+			LongitudOla -= 0.1;
 		}
 		break;
 
@@ -342,7 +315,9 @@ void Keyboard(unsigned char key, int x, int y)
 
 	case 67: case 99: //tecla c 
 
-		VelocidadOla -= 0.1;
+		if (VelocidadOla > 0.1) {
+			VelocidadOla -= 0.1;
+		}
 		break;
 
 	case 70: case 102: //tecla f
@@ -366,7 +341,9 @@ void Keyboard(unsigned char key, int x, int y)
 
 	case 66: case 98: //tecla b
 
-		AmplitudRuido -= 0.01;
+		if (AmplitudRuido > 0.01) {
+			AmplitudRuido -= 0.01;
+		}
 		break;
 
 	case 72: case 104: //tecla h
@@ -386,7 +363,9 @@ void Keyboard(unsigned char key, int x, int y)
 
 	case 77: case 109: //tecla m
 
-		AlturaRuido -= 0.01;
+		if (AlturaRuido > 0.01) {
+			AlturaRuido -= 0.01;
+		}
 		break;
 
 	case 84: case 116: //tecla t
@@ -396,7 +375,9 @@ void Keyboard(unsigned char key, int x, int y)
 
 	case 89: case 121: //tecla y 
 
-		SizeTurbulencia -= 1.0;
+		if (SizeTurbulencia > 1.0) {
+			SizeTurbulencia -= 1.0;
+		}
 		break;
 
 	case 85: case 117: //tecla u
@@ -406,7 +387,9 @@ void Keyboard(unsigned char key, int x, int y)
 
 	case 73: case 105: //tecla i
 
-		AmplitudDeformador -= 0.001;
+		if (AmplitudDeformador > 0.001) {
+			AmplitudDeformador -= 0.001;
+		}
 		break;
 	
 	case 79: case 111: //tecla o
@@ -460,14 +443,8 @@ void Keyboard(unsigned char key, int x, int y)
 	case 51: //tecla numero 3
 
 		if(!desactivaOla){
-			AmplitudOla = 0.0f;
-			LongitudOla = 0.0f;
-			VelocidadOla = 0.0f;
 			desactivaOla = 1;
 		} else {
-			AmplitudOla = 0.5f;
-			LongitudOla = 3.5f;
-			VelocidadOla = 2.0f;
 			desactivaOla = 0;
 		}
 		break;
@@ -503,33 +480,6 @@ void render(){
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
 	glLightfv(GL_LIGHT0, GL_POSITION, light_position);   
-
-	/* Render Grid 
-	glDisable(GL_LIGHTING);
-	glLineWidth(1.0);
-	glPushMatrix();
-	glRotatef(90,1.0,0.0,0.0);
-    glColor3f( 0.0, 0.7, 0.7 );
-    glBegin( GL_LINES );
-    zExtent = DEF_floorGridScale * DEF_floorGridZSteps;
-    for(loopX = -DEF_floorGridXSteps; loopX <= DEF_floorGridXSteps; loopX++ )
-	{
-	xLocal = DEF_floorGridScale * loopX;
-	glVertex3f( xLocal, -zExtent, 0.0 );
-	glVertex3f( xLocal, zExtent,  0.0 );
-	}
-    xExtent = DEF_floorGridScale * DEF_floorGridXSteps;
-    for(loopZ = -DEF_floorGridZSteps; loopZ <= DEF_floorGridZSteps; loopZ++ )
-	{
-	zLocal = DEF_floorGridScale * loopZ;
-	glVertex3f( -xExtent, zLocal, 0.0 );
-	glVertex3f(  xExtent, zLocal, 0.0 );
-	}
-    glEnd();
-	ejesCoordenada();
-    glPopMatrix();
-	glEnable(GL_LIGHTING);
-	// Fin Grid*/
 	
 	//Suaviza las lineas
 	glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -560,7 +510,7 @@ void render(){
 		glEnd();
 		glEnable(GL_LIGHTING);*/
 			
-		glPointSize(5.0);
+		glPointSize(9.0);
 		glColor3f(1.0, 1.0, 0.0);
 		glBegin(GL_POINTS);
 	            glVertex3f(ctlpoints[20][20][0], ctlpoints[20][20][1], ctlpoints[20][20][2]);
