@@ -32,14 +32,15 @@ float decaimiento[21] = {0.05,0.1,0.2,0.325,0.45,
 
 float ctlpoints[21][21][3]; //puntos de control.
 float D[2]; //puntos de la direccion.
+float dist; // Distancia entre un punto y el centro.
 
 // Para las animaciones.
 GLfloat AmplitudOla = 0.5f;
 GLfloat LongitudOla = 3.5f;
 GLfloat VelocidadOla = 2.0f;
-GLfloat DecaimientoOla = 0.0f;		// Tengo que revisarlo, no funciona correctamente
-GLfloat AmplitudRuido = 30.0f;		// NO ENTIENDO QUE DEBE HACER (AL PARECER GENERA MAS O MENOS SUAVIDAD EN EL RUIDO) Y NO SE SI LO ESTA HACIENDO
-GLfloat OffsetRuido = 10.4f;		// NO ENTIENDO QUE DEBE HACER Y NO SE SI LO ESTA HACIENDO
+GLfloat DecaimientoOla = 0.0f;
+GLfloat AmplitudRuido = 15.0f;
+GLfloat OffsetRuido = 10.4f;
 GLfloat AlturaRuido = 1.0f;
 GLfloat SizeTurbulencia = 16.0f;	
 GLfloat AmplitudDeformador;
@@ -182,10 +183,10 @@ float ruido(float ptoX, float ptoZ) {
 // Para las olas.
 void circular(float x, float z) {
 
-	float dist = sqrt (pow(x-centroX, 2) + pow(z-centroZ, 2));
+	dist = sqrt (pow(x-centroX, 2) + pow(z-centroZ, 2));
 	if(dist == 0){
-		D[0] = 0.0;
-		D[1] = 0.0;
+		D[0] = 1.0;
+		D[1] = 1.0;
 	} else {
 		D[0] = (x - centroX) / dist;
 		D[1] = (z - centroZ) / dist;
@@ -196,9 +197,6 @@ void circular(float x, float z) {
 void olas(){
 
 	float productoEscalar;
-	float decaimientoPto;
-	float diferenciaDecaimiento;
-	float decaimientoTotal;
 
 	w = ((2 * PI) / LongitudOla );
 	s = ((VelocidadOla * 2 * PI) / LongitudOla );
@@ -208,29 +206,15 @@ void olas(){
 
 			circular(ctlpoints[i][j][0],ctlpoints[i][j][2]);
 			productoEscalar = (D[0] * ctlpoints[i][j][0]) + (D[1] * ctlpoints[i][j][2]); 
-			/*
-			decaimientoPto = decaimiento[i] * decaimiento[j];
-			if (DecaimientoOla <= 0.0) {
-				diferenciaDecaimiento = (1 - decaimientoPto) / 100;
-				decaimientoTotal = decaimientoPto - 100 * DecaimientoOla * diferenciaDecaimiento;
-			} else {
-				diferenciaDecaimiento = decaimientoPto / 100;
-				decaimientoTotal = decaimientoPto - 100 * DecaimientoOla * diferenciaDecaimiento;
-			}
-			*/
 			if (!desactivaOla && !desactivaRuido) {
-				//ctlpoints[i][j][1] = decaimientoTotal * (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s  + ruido(ctlpoints[i][j][0],ctlpoints[i][j][2])));
-				ctlpoints[i][j][1] = AmplitudDeformador * pow(ctlpoints[i][j][2]+TranslacionDeformador,2) + (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s  + ruido(ctlpoints[i][j][0],ctlpoints[i][j][2])));
+				ctlpoints[i][j][1] = AmplitudDeformador * pow(ctlpoints[i][j][2]+TranslacionDeformador,2) + (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s )) + ruido(ctlpoints[i][j][0],ctlpoints[i][j][2]);
 			} else if (!desactivaOla && desactivaRuido) {
-				//ctlpoints[i][j][1] = decaimientoTotal * (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s ));
 				ctlpoints[i][j][1] = AmplitudDeformador * pow(ctlpoints[i][j][2]+TranslacionDeformador,2) + (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s ));
 			} else if (desactivaOla && !desactivaRuido) {
-				// ASI MUESTRA ALGO MUY PARECIDO AL DEL PROFESOR, AUNQUE NO ME CONVENCE ESE SENO. SE ANDA MOVIENDO EN PLANO "Y" ARRIBA Y ABAJO
-				ctlpoints[i][j][1] = AmplitudDeformador * pow(ctlpoints[i][j][2]+TranslacionDeformador,2) + sinf(time + ruido(ctlpoints[i][j][0],ctlpoints[i][j][2]));;
+				ctlpoints[i][j][1] = AmplitudDeformador * pow(ctlpoints[i][j][2]+TranslacionDeformador,2) + ruido(ctlpoints[i][j][0],ctlpoints[i][j][2]);
 			} else {
 				ctlpoints[i][j][1] = AmplitudDeformador * pow(ctlpoints[i][j][2]+TranslacionDeformador,2); 
 			}
-
 		}
 	}
 
@@ -322,16 +306,16 @@ void Keyboard(unsigned char key, int x, int y)
 
 	case 70: case 102: //tecla f
 
-		if (DecaimientoOla < 1.00) {
+		//if (DecaimientoOla < 1.00) {
 			DecaimientoOla += 0.01;
-		}
+		//}
 		break;
 
 	case 86: case 118: //tecla v
 
-		if (DecaimientoOla > -1.00) {
+		//if (DecaimientoOla > -1.00) {
 			DecaimientoOla -= 0.01;
-		}
+		//}
 		break;
 
 	case 71: case 103: //tecla g
@@ -375,9 +359,7 @@ void Keyboard(unsigned char key, int x, int y)
 
 	case 89: case 121: //tecla y 
 
-		if (SizeTurbulencia > 1.0) {
-			SizeTurbulencia -= 1.0;
-		}
+		SizeTurbulencia -= 1.0;
 		break;
 
 	case 85: case 117: //tecla u
@@ -387,9 +369,7 @@ void Keyboard(unsigned char key, int x, int y)
 
 	case 73: case 105: //tecla i
 
-		if (AmplitudDeformador > 0.001) {
-			AmplitudDeformador -= 0.001;
-		}
+		AmplitudDeformador -= 0.001;
 		break;
 	
 	case 79: case 111: //tecla o
@@ -508,7 +488,8 @@ void render(){
 			}
 		}
 		glEnd();
-		glEnable(GL_LIGHTING);*/
+		glEnable(GL_LIGHTING);
+	*/
 			
 		glPointSize(9.0);
 		glColor3f(1.0, 1.0, 0.0);
@@ -529,7 +510,6 @@ void animacion(int value) {
 		time += 0.1;
 		olas();
 	}
-
 	glutTimerFunc(2.0,animacion,1);
     glutPostRedisplay();
 	
