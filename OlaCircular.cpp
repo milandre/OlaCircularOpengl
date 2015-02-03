@@ -220,15 +220,15 @@ void olas(){
 			*/
 			if (!desactivaOla && !desactivaRuido) {
 				//ctlpoints[i][j][1] = decaimientoTotal * (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s  + ruido(ctlpoints[i][j][0],ctlpoints[i][j][2])));
-				ctlpoints[i][j][1] = (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s  + ruido(ctlpoints[i][j][0],ctlpoints[i][j][2])));
+				ctlpoints[i][j][1] = AmplitudDeformador * pow(ctlpoints[i][j][2]+TranslacionDeformador,2) + (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s  + ruido(ctlpoints[i][j][0],ctlpoints[i][j][2])));
 			} else if (!desactivaOla && desactivaRuido) {
 				//ctlpoints[i][j][1] = decaimientoTotal * (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s ));
-				ctlpoints[i][j][1] = (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s ));
+				ctlpoints[i][j][1] = AmplitudDeformador * pow(ctlpoints[i][j][2]+TranslacionDeformador,2) + (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s ));
 			} else if (desactivaOla && !desactivaRuido) {
-				// ASI MUESTRA ALGO MUY PARECIDO AL DEL PROFESOR, AUNQUE NO ME CONVENCE ESE SENO. 
-				ctlpoints[i][j][1] = sinf(time + ruido(ctlpoints[i][j][0],ctlpoints[i][j][2]));
+				// ASI MUESTRA ALGO MUY PARECIDO AL DEL PROFESOR, AUNQUE NO ME CONVENCE ESE SENO. SE ANDA MOVIENDO EN PLANO "Y" ARRIBA Y ABAJO
+				ctlpoints[i][j][1] = AmplitudDeformador * pow(ctlpoints[i][j][2]+TranslacionDeformador,2) + sinf(time + ruido(ctlpoints[i][j][0],ctlpoints[i][j][2]));;
 			} else {
-				ctlpoints[i][j][1] = 0.0; 
+				ctlpoints[i][j][1] = AmplitudDeformador * pow(ctlpoints[i][j][2]+TranslacionDeformador,2); 
 			}
 
 		}
