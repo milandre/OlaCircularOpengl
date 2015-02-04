@@ -14,34 +14,27 @@ using namespace std;
 #define DEF_floorGridZSteps	10.0
 #define PI 3.14159265358979323846
 
-int SoloUno = 0;
-
 GLUnurbsObj *theNurb;
 
+// Vector de knots
 float knots[25] = {0.0,0.0,0.0,0.0,1.0,2.0,
 	               3.0,4.0,5.0,6.0,7.0,
 				   8.0,9.0,10.0,11.0,12.0,
 				   13.0,14.0,15.0,16.0,17.0,
 				   18.0,18.0,18.0,18.0};
 
-float decaimiento[21] = {0.05,0.1,0.2,0.325,0.45,
-						 0.575,0.7,0.8,0.875,0.95,
-						 1.0,
-						 0.95,0.875,0.8,0.7,0.575,
-						 0.45,0.325,0.2,0.1,0.05};
-
+// Puntos de control y de dirección.
 float ctlpoints[21][21][3]; //puntos de control.
 float D[2]; //puntos de la direccion.
-float dist; // Distancia entre un punto y el centro.
 
-// Para las animaciones.
-GLfloat AmplitudOla = 0.5f;
+// Variables Globales para la interacción de teclado.
+GLfloat AmplitudOla = 1.0f;
 GLfloat LongitudOla = 3.5f;
-GLfloat VelocidadOla = 2.0f;
-GLfloat DecaimientoOla = 0.0f;
-GLfloat AmplitudRuido = 15.0f;
+GLfloat VelocidadOla = 1.9f;
+GLfloat DecaimientoOla = 0.07f;
+GLfloat AmplitudRuido = 30.0f;
 GLfloat OffsetRuido = 10.4f;
-GLfloat AlturaRuido = 1.0f;
+GLfloat AlturaRuido = 0.35f;
 GLfloat SizeTurbulencia = 16.0f;	
 GLfloat AmplitudDeformador;
 GLfloat TranslacionDeformador;
@@ -52,13 +45,11 @@ GLint desactivaRuido = 0;
 GLint desactivaOla = 0;
 GLfloat time = 0.1;
 
-//Calcular frecuencia de la ola.
+// Variables del calculo de la frecuencia y la velocidad de la ola.
 GLfloat w; 
-
-//Calcular velocidad de la ola.
 GLfloat s;
 
-// Para el ruido y la turbulencia.
+// Todo para el ruido y la turbulencia.
 #define N 0x1000
 #define B 0x100
 #define BM 0xff
@@ -80,8 +71,8 @@ static void init_ruido(void);
 	r0 = t - (int)t;\
 	r1 = r0 - 1.;
 
-float noise2(float vec[2])
-{
+float noise2(float vec[2]) {
+
 	int bx0, bx1, bz0, bz1, b00, b10, b01, b11;
 	float rx0, rx1, rz0, rz1, *q, sx, sz, a, b, t, u, v;
 	int i, j;
@@ -134,17 +125,18 @@ float turbulence(float x, float z) {
 
 }
 
-static void normalize2(float v[2])
-{
+static void normalize2(float v[2]) {
+
 	float s;
 	s = sqrt(v[0] * v[0] + v[1] * v[1]);
 	v[0] = v[0] / s;
 	v[1] = v[1] / s;
+
 }
 
 static void init_ruido(void) {
-	int i, j, k;
 
+	int i, j, k;
 	for (i = 0 ; i < B ; i++) {
 		p[i] = i;
 
@@ -152,38 +144,35 @@ static void init_ruido(void) {
 			g2[i][j] = (float)((rand() % (B + B)) - B) / B;
 		normalize2(g2[i]);
 	}
-
 	while (--i) {
 		k = p[i];
 		p[i] = p[j = rand() % B];
 		p[j] = k;
 	}
-
 	for (i = 0 ; i < B + 2 ; i++) {
 		p[B + i] = p[i];
 		for (j = 0 ; j < 2 ; j++)
 			g2[B + i][j] = g2[i][j];
 	}
+
 }
 
 float ruido(float ptoX, float ptoZ) {
 
 	float n_noise[2];
 	float turbulencia;
-
 	n_noise[0] = ptoX * AmplitudRuido + OffsetRuido;
 	n_noise[1] = ptoZ * AmplitudRuido + OffsetRuido;
-			
 	//turbulencia
 	turbulencia = turbulence(n_noise[0],n_noise[1]);
 	return  (AlturaRuido * 0.005 * turbulencia);
 
 }
 
-// Para las olas.
-void circular(float x, float z) {
+// Todo para las olas y el decaimiento.
+float circular(float x, float z) {
 
-	dist = sqrt (pow(x-centroX, 2) + pow(z-centroZ, 2));
+	float dist = sqrt (pow(x-centroX, 2) + pow(z-centroZ, 2));
 	if(dist == 0){
 		D[0] = 1.0;
 		D[1] = 1.0;
@@ -191,29 +180,50 @@ void circular(float x, float z) {
 		D[0] = (x - centroX) / dist;
 		D[1] = (z - centroZ) / dist;
 	}
+	return dist;
 
 }
 
 void olas(){
 
 	float productoEscalar;
-
+	float dist;
+	float deformador;
+	float decaimiento;
+	float ola;
+	float ruid;
 	w = ((2 * PI) / LongitudOla );
 	s = ((VelocidadOla * 2 * PI) / LongitudOla );
 
 	for(int i = 0; i < 21; i++){
-		for(int j = 0; j < 21; j++){
+		for(int j = 0; j < 21; j++) {
 
-			circular(ctlpoints[i][j][0],ctlpoints[i][j][2]);
+			dist = circular(ctlpoints[i][j][0],ctlpoints[i][j][2]);
 			productoEscalar = (D[0] * ctlpoints[i][j][0]) + (D[1] * ctlpoints[i][j][2]); 
-			if (!desactivaOla && !desactivaRuido) {
-				ctlpoints[i][j][1] = AmplitudDeformador * pow(ctlpoints[i][j][2]+TranslacionDeformador,2) + (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s )) + ruido(ctlpoints[i][j][0],ctlpoints[i][j][2]);
-			} else if (!desactivaOla && desactivaRuido) {
-				ctlpoints[i][j][1] = AmplitudDeformador * pow(ctlpoints[i][j][2]+TranslacionDeformador,2) + (AmplitudOla * sinf( -1.0 * (productoEscalar * w) + time * s ));
-			} else if (desactivaOla && !desactivaRuido) {
-				ctlpoints[i][j][1] = AmplitudDeformador * pow(ctlpoints[i][j][2]+TranslacionDeformador,2) + ruido(ctlpoints[i][j][0],ctlpoints[i][j][2]);
+
+			// Decaimiento.
+			if (dist == 0.0) {
+				decaimiento = DecaimientoOla *  1.0;
 			} else {
-				ctlpoints[i][j][1] = AmplitudDeformador * pow(ctlpoints[i][j][2]+TranslacionDeformador,2); 
+				if (AmplitudOla < DecaimientoOla * dist) {
+					decaimiento = AmplitudOla;
+				} else {
+					decaimiento = DecaimientoOla * dist;
+				}
+			}
+
+			deformador = AmplitudDeformador * pow(ctlpoints[i][j][2]+TranslacionDeformador,2);
+			ola = ((AmplitudOla - decaimiento) * sinf( -1.0 * (productoEscalar * w) + time * s ));
+			ruid = ruido(ctlpoints[i][j][0],ctlpoints[i][j][2]);
+
+			if (!desactivaOla && !desactivaRuido) {
+				ctlpoints[i][j][1] = deformador + ola + ruid;
+			} else if (!desactivaOla && desactivaRuido) {
+				ctlpoints[i][j][1] = deformador + ola;
+			} else if (desactivaOla && !desactivaRuido) {
+				ctlpoints[i][j][1] = deformador + ruid;
+			} else {
+				ctlpoints[i][j][1] = deformador; 
 			}
 		}
 	}
@@ -225,11 +235,11 @@ void changeViewport(int w, int h) {
 	float aspectratio;
 	if (h==0)
 		h=1;
-   glViewport (0, 0, (GLsizei) w, (GLsizei) h); 
-   glMatrixMode (GL_PROJECTION);
-   glLoadIdentity ();
-   gluPerspective(30, (GLfloat) w/(GLfloat) h, 1.0, 200.0);
-   glMatrixMode (GL_MODELVIEW);
+	glViewport (0, 0, (GLsizei) w, (GLsizei) h); 
+	glMatrixMode (GL_PROJECTION);
+	glLoadIdentity ();
+	gluPerspective(30, (GLfloat) w/(GLfloat) h, 1.0, 200.0);
+	glMatrixMode (GL_MODELVIEW);
 
 }
 
@@ -247,15 +257,15 @@ void init_surface() {
 
 void init(){
 
-   glEnable(GL_LIGHTING);
-   glEnable(GL_LIGHT0);
-   glEnable(GL_DEPTH_TEST);
-   glEnable(GL_AUTO_NORMAL);
-   glEnable(GL_NORMALIZE);
-   init_surface();
-   theNurb = gluNewNurbsRenderer();
-   gluNurbsProperty(theNurb, GLU_SAMPLING_TOLERANCE, 15.0);
-   gluNurbsProperty(theNurb, GLU_DISPLAY_MODE, GLU_FILL);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_AUTO_NORMAL);
+	glEnable(GL_NORMALIZE);
+	init_surface();
+	theNurb = gluNewNurbsRenderer();
+	gluNurbsProperty(theNurb, GLU_SAMPLING_TOLERANCE, 15.0);
+	gluNurbsProperty(theNurb, GLU_DISPLAY_MODE, GLU_FILL);
 
 }
 
@@ -306,16 +316,14 @@ void Keyboard(unsigned char key, int x, int y)
 
 	case 70: case 102: //tecla f
 
-		//if (DecaimientoOla < 1.00) {
-			DecaimientoOla += 0.01;
-		//}
+		DecaimientoOla += 0.01;
 		break;
 
 	case 86: case 118: //tecla v
 
-		//if (DecaimientoOla > -1.00) {
+		if (DecaimientoOla > 0.01) {
 			DecaimientoOla -= 0.01;
-		//}
+		}
 		break;
 
 	case 71: case 103: //tecla g
@@ -490,12 +498,6 @@ void render(){
 		glEnd();
 		glEnable(GL_LIGHTING);
 	*/
-			
-		glPointSize(9.0);
-		glColor3f(1.0, 1.0, 0.0);
-		glBegin(GL_POINTS);
-	            glVertex3f(ctlpoints[20][20][0], ctlpoints[20][20][1], ctlpoints[20][20][2]);
-		glEnd();
 
 	glDisable(GL_BLEND);
 	glDisable(GL_LINE_SMOOTH);
